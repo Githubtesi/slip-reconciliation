@@ -37,3 +37,6 @@ data/output/*
 # OS
 .DS_Store
 Thumbs.db
+
+# Local application settings (contains local file paths)
+config/settings.json
