@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+
+# Environment variables
+.env
+.env.*
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Company data and generated output: never commit real files
+data/input/*
+!data/input/.gitkeep
+data/output/*
+!data/output/.gitkeep
+
+# Generated images
+*.png
+*.jpg
+*.jpeg
+
+# OS
+.DS_Store
+Thumbs.db
