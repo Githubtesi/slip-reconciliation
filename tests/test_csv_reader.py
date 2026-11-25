@@ -80,3 +80,16 @@ def test_load_csv_reports_duplicate_column(tmp_path: Path) -> None:
 
     with pytest.raises(CsvValidationError, match="重複"):
         load_csv(path)
+
+
+
+def test_load_csv_utf16le_with_bom(tmp_path: Path) -> None:
+    dataframe = _sample_dataframe()
+    dataframe.loc[0, "商品ｺｰﾄﾞ"] = "00123"
+    path = tmp_path / "sample_utf16.csv"
+    dataframe.to_csv(path, index=False, encoding="utf-16")
+
+    result = load_csv(path)
+
+    assert list(result.columns) == EXPECTED_COLUMNS
+    assert result.loc[0, "商品ｺｰﾄﾞ"] == "00123"
