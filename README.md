@@ -1,57 +1,119 @@
-# slip-reconciliation
+# 伝票枚数カウント（slip-reconciliation）
 
-社内システムから出力したCSVデータと、実際の現品票の枚数を照合するためのPythonプロジェクトです。
+SMILEから出力した仕入データCSVを読み込み、指定した期間・ログインIDで抽出した明細行数を担当者・仕入先別に集計し、A4縦のPDFとして出力するWindowsデスクトップアプリです。
 
-## 目的
+## 主な機能
 
-社内システム上の処理件数と現品票の実枚数を比較し、処理漏れ・現品票の不足・過剰などの差異を確認できるようにします。
+- SMILEの仕入データCSV（`shiire_list_smile`相当）を読み込み
+- UTF-8 / UTF-8 BOM付き / UTF-16 / UTF-16LE・BE / CP932のCSVに対応
+- CSV内のログインIDを自動取得し、プルダウンから選択
+- 初期ログインIDは `IR-301`（CSV内に存在する場合）
+- 伝票日付の開始日・終了日で抽出
+- 商品コードが空欄の明細を除外
+- 担当者コード → 仕入先名略称の2階層で明細行数を集計
+- 担当者別小計、仕入先別件数、全体の総合計を表示
+- A4縦の複数ページPDFを1ファイルに出力
+- 前回選択したCSVファイルとPDF出力先フォルダを保存し、次回起動時に復元
 
-## Phase 1：CSV集計表の作成
+## 集計仕様
 
-仕入データCSVを条件で絞り込み、ピボットテーブル形式の集計表をA4縦のPDFとして出力します。
-
-### 使用列
-
-| 用途 | CSV列 |
+| 項目 | 内容 |
 |---|---|
-| 日付フィルタ | 伝票日付 |
-| ログインIDフィルタ | ﾛｸﾞｲﾝID |
-| 集計第1階層 | 商品ｺｰﾄﾞ |
-| 集計第2階層 | 仕入先名略称 |
-| 集計対象 | CSVの明細行 |
+| 日付フィルタ | `伝票日付` |
+| ログインIDフィルタ | `ﾛｸﾞｲﾝID` |
+| 商品コード判定 | `商品ｺｰﾄﾞ` が空欄でない明細を対象 |
+| 第1階層 | `担当者ｺｰﾄﾞ` |
+| 第2階層 | `仕入先名略称` |
+| 集計値 | CSVの明細行数 |
 
-### 集計ルール
+同じ内容の明細行であっても重複排除はせず、CSV上の1行を1件として数えます。集計表は担当者ごとの合計行の下に、その担当者に属する仕入先別の行数を表示します。
 
-- 伝票日付を開始日・終了日で絞り込みます。
-- ﾛｸﾞｲﾝIDで絞り込みます（全IDも選択可能にする予定）。
-- 商品ｺｰﾄﾞ > 仕入先名略称の2階層で集計します。
-- 集計値はCSVの明細行数です。同一内容の行も重複排除せず、それぞれ1件として数えます。
-- 商品コードごとの小計と全体の総計を表示します。
+## 画面・出力
 
-### 出力仕様
+1. CSVファイルを選択します。
+2. PDFの出力先フォルダを選択します。
+3. 集計期間とログインIDを指定します。
+4. 「集計・PDF出力」を押します。
 
-- A4縦のPDFとして出力します。
-- タイトル、集計期間、ログインID、商品コード別小計、仕入先別件数、総計を表示します。
-- A4縦、2480 × 3508px、300dpiで出力します。\n- データ量が多い場合は複数ページに分割し、ページ番号を表示します。
+出力されるPDFのファイル名は `伝票枚数集計.pdf` です。同じ出力先に同名ファイルがある場合は上書きされます。必要なPDFは別フォルダへ移動するなどして保管してください。
 
-## 開発ロードマップ
+## 動作環境
 
-1. CSV読み込み（文字コード・列名の確認を含む）
-2. 伝票日付・ログインIDフィルタ
-3. 商品コード・仕入先別の明細行数集計
-4. A4 PDF出力
-5. 集計結果のプレビュー画面
-6. 現品票の実枚数入力または画像からの取得
-7. CSV集計と現品票枚数の照合・差異管理
+- Windows 10 / 11
+- Python 3.11以上（ソースから実行する場合）
+- EXE版はPythonのインストール不要
 
-## 技術構成（初期案）
+## ソースからの実行方法
 
-- Python 3.11以上
-- pandas：CSV読み込み・集計
-- ReportLab：A4 PDF生成
-- FastAPI / Uvicorn：将来のWeb画面
-- SQLite：将来の履歴・照合結果保存
-- pytest：テスト
+### 1. リポジトリを取得
+
+```powershell
+git clone https://github.com/Githubtesi/slip-reconciliation.git
+cd slip-reconciliation
+```
+
+既に取得済みの場合は、プロジェクトフォルダで `git pull origin main` を実行してください。
+
+### 2. 仮想環境を作成して依存パッケージをインストール
+
+```powershell
+py -3.11 -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+### 3. アプリを起動
+
+```powershell
+python main.py
+```
+
+### 4. テスト
+
+```powershell
+python -m pytest -v
+```
+
+## EXEのビルド方法
+
+EXEの作成はWindows上で行ってください。以下はPowerShellでの手順です。
+
+### 1. 仮想環境を有効化
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+### 2. PyInstallerをインストール
+
+```powershell
+python -m pip install pyinstaller
+```
+
+### 3. EXEを作成
+
+プロジェクトのルートフォルダで実行します。
+
+```powershell
+python -m PyInstaller --noconfirm --clean --onefile --windowed --name "伝票枚数カウント" --collect-all tkcalendar --collect-all babel main.py
+```
+
+ビルドが完了すると、次の場所にEXEが作成されます。
+
+```text
+dist/伝票枚数カウント.exe
+```
+
+EXEを配布する際は、EXEを任意のフォルダに置いて実行してください。初回起動時にEXEと同じ場所へ `config/settings.json` が作成されます。設定を保存するため、EXEを置くフォルダには書き込み権限が必要です。会社PCで利用する場合は、デスクトップやユーザーが書き込み可能なフォルダへの配置を推奨します。
+
+## 設定ファイル・出力先
+
+- 設定ファイル：EXEと同じフォルダの `config/settings.json`
+- 設定内容：前回選択したCSVファイルのパス、PDF出力先フォルダ
+- PDF出力先：アプリ画面で指定したフォルダ
+
+`config/settings.json` はPCごとのローカルパスを保存するため、Git管理対象外です。別のPCへEXEを移した場合、CSVファイルや出力先はそのPCで改めて指定してください。
 
 ## ディレクトリ構成
 
@@ -59,10 +121,12 @@
 slip-reconciliation/
 ├── app/
 │   ├── __init__.py
+│   ├── aggregation.py
 │   ├── csv_reader.py
 │   ├── filters.py
-│   ├── aggregation.py
-│   └── image_export.py
+│   ├── gui.py
+│   ├── image_export.py
+│   └── pdf_export.py
 ├── config/
 │   └── .gitkeep
 ├── data/
@@ -71,39 +135,18 @@ slip-reconciliation/
 │   └── output/
 │       └── .gitkeep
 ├── tests/
-│   └── .gitkeep
 ├── .gitignore
 ├── main.py
 ├── requirements.txt
 └── README.md
 ```
 
-## セットアップ
-
-### Windows PowerShell
-
-```powershell
-py -3.11 -m venv .venv
-.venv\\Scripts\\Activate.ps1
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-python main.py
-```
-
-### Linux / macOS
-
-```bash
-python3.11 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-python main.py
-```
-
 ## データ管理上の注意
 
-社内CSVには取引先情報・個人情報などが含まれる可能性があります。実データや機密情報をGitHubへ登録しないでください。data/input/とdata/output/内の実ファイルはGit管理対象外です。動作確認には匿名化したダミーデータを使用してください。
+仕入データCSVには取引先情報などの社内情報が含まれる可能性があります。実データや個人情報をGitHubへ登録しないでください。実データはローカルPCまたは社内で許可された保存先に置いてください。
 
-## 開発状況
+## 今後の拡張候補
 
-CSV読み込み、日付・ログインID・商品コードによる絞り込み、担当者・仕入先別集計、A4縦の複数ページPDF出力、CSVファイル・出力先フォルダの前回設定保存を実装済みです。実データでの一連の動作確認と、実行画面・EXE化は今後の作業です。
+- 現品票の実枚数入力
+- CSV集計結果と現品票枚数の照合
+- 差異の一覧表示・履歴保存
