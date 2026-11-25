@@ -116,3 +116,38 @@ def load_csv(file_path: Union[str, Path]) -> pd.DataFrame:
         "CSVの文字コードを判定できませんでした。"
         "UTF-8、UTF-16またはCP932形式で保存し直してください。"
     ) from last_decode_error
+
+def load_login_ids(file_path: Union[str, Path], chunksize: int = 200_000) -> list[str]:
+    """CSV内のログインIDをチャンク単位で読み取り、重複のない候補一覧を返す。"""
+    path = Path(file_path)
+    if not path.is_file():
+        raise FileNotFoundError(f"CSVファイルが見つかりません: {path}")
+    if chunksize < 1:
+        raise ValueError("chunksizeは1以上を指定してください。")
+
+    last_decode_error = None
+    for encoding in ("utf-8-sig", "utf-8", "utf-16", "utf-16-le", "utf-16-be", "cp932"):
+        try:
+            columns = _read_header(path, encoding)
+            _validate_columns(columns)
+            login_ids: set[str] = set()
+            for chunk in pd.read_csv(
+                path, encoding=encoding, usecols=["ﾛｸﾞｲﾝID"],
+                dtype={"ﾛｸﾞｲﾝID": "string"}, keep_default_na=False,
+                on_bad_lines="error", chunksize=chunksize,
+            ):
+                values = chunk["ﾛｸﾞｲﾝID"].astype("string").str.strip()
+                login_ids.update(v for v in values.dropna().unique().tolist() if v)
+            return sorted(login_ids)
+        except UnicodeDecodeError as exc:
+            last_decode_error = exc
+            continue
+        except pd.errors.EmptyDataError as exc:
+            raise CsvValidationError("CSVファイルにヘッダーがありません。") from exc
+        except pd.errors.ParserError as exc:
+            raise CsvValidationError(f"CSVの読み込みに失敗しました: {exc}") from exc
+
+    raise CsvValidationError(
+        "CSVの文字コードを判定できませんでした。"
+        "UTF-8、UTF-16またはCP932形式で保存し直してください。"
+    ) from last_decode_error
