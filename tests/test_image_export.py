@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 import pandas as pd
 from PIL import Image, ImageFont
 
@@ -28,7 +30,8 @@ def test_export_creates_single_a4_png(tmp_path: Path, monkeypatch) -> None:
     assert paths[0].name == "伝票枚数集計.png"
     with Image.open(paths[0]) as image:
         assert image.size == (PAGE_WIDTH, PAGE_HEIGHT)
-        assert image.info["dpi"] == (300.0, 300.0)
+        assert image.info["dpi"][0] == pytest.approx(300.0, abs=0.01)
+        assert image.info["dpi"][1] == pytest.approx(300.0, abs=0.01)
 
 
 def test_export_splits_into_multiple_pages(tmp_path: Path, monkeypatch) -> None:
@@ -40,7 +43,7 @@ def test_export_splits_into_multiple_pages(tmp_path: Path, monkeypatch) -> None:
         )
     rows.append({"区分": "総合計", "担当者ｺｰﾄﾞ": "", "仕入先名略称": "", "行数": 5})
 
-    paths = export_summary_images(rows=_summary(rows), output_dir=tmp_path, rows_per_page=2)
+    paths = export_summary_images(summary=_summary(rows), output_dir=tmp_path, rows_per_page=2)
 
     assert [path.name for path in paths] == [
         "伝票枚数集計_001.png",
