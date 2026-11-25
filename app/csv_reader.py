@@ -80,7 +80,7 @@ def _validate_columns(columns: list[str]) -> None:
 def load_csv(file_path: Union[str, Path]) -> pd.DataFrame:
     """Smileの仕入データCSVを読み込み、列名と列構成を検証する。
 
-    対応文字コード: UTF-8 BOM付き、UTF-8、CP932（Shift-JIS系）。
+    対応文字コード: UTF-8 BOM付き、UTF-8、UTF-16（LE/BE）、CP932（Shift-JIS系）。
     列の並び順は問いません。読み込み後は EXPECTED_COLUMNS の順に統一します。
     """
     path = Path(file_path)
@@ -89,7 +89,7 @@ def load_csv(file_path: Union[str, Path]) -> pd.DataFrame:
 
     last_decode_error = None
 
-    for encoding in ("utf-8-sig", "utf-8", "cp932"):
+    for encoding in ("utf-8-sig", "utf-8", "utf-16", "utf-16-le", "utf-16-be", "cp932"):
         try:
             columns = _read_header(path, encoding)
             _validate_columns(columns)
@@ -114,5 +114,5 @@ def load_csv(file_path: Union[str, Path]) -> pd.DataFrame:
 
     raise CsvValidationError(
         "CSVの文字コードを判定できませんでした。"
-        "UTF-8またはCP932形式で保存し直してください。"
+        "UTF-8、UTF-16またはCP932形式で保存し直してください。"
     ) from last_decode_error
