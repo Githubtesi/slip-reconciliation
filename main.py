@@ -1,9 +1,10 @@
-"""Entry point for slip-reconciliation."""
+"""Application entry point."""
+
+from app.gui import launch_gui
 
 
 def main() -> None:
-    print("slip-reconciliation")
-    print("初期プロジェクト構成です。CSV集計・A4画像出力機能は順次実装します。")
+    launch_gui()
 
 
 if __name__ == "__main__":
