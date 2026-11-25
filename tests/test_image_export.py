@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import pandas as pd
-from PIL import ImageFont
+from PIL import Image, ImageFont
 
 from app.image_export import PAGE_HEIGHT, PAGE_WIDTH, export_summary_images
 
